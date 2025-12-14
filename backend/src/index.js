@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -9,19 +10,23 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // Database pool
+const useSSL = (process.env.PG_SSL || '').toLowerCase() === 'true';
 const pool = new Pool({
   host: process.env.PG_HOST,
-  port: process.env.PG_PORT,
+  port: Number(process.env.PG_PORT) || 5432,
   database: process.env.PG_DATABASE,
   user: process.env.PG_USER,
   password: process.env.PG_PASSWORD,
-  ssl: { rejectUnauthorized: false }, // Required for Supabase
-  family: 4, // Force IPv4 only (bypass IPv6 issues)
+  ssl: useSSL ? { rejectUnauthorized: false } : false,
+  family: 4,
 });
 
 // Middleware
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

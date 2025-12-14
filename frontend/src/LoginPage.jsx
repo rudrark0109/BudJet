@@ -17,7 +17,24 @@ export default function LoginPage() {
     e.preventDefault();
     setStatus('Registering...');
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Register user in backend database
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || email.split('@')[0],
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to register in database');
+      }
+      
       setStatus('Registered and logged in');
       navigate('/home');
     } catch (err) {
@@ -29,7 +46,20 @@ export default function LoginPage() {
     e.preventDefault();
     setStatus('Logging in...');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Verify user exists in backend database
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('User not found in database');
+      }
+      
       setStatus('Logged in');
       navigate('/home');
     } catch (err) {
@@ -40,7 +70,20 @@ export default function LoginPage() {
   async function handleGoogle() {
     setStatus('Signing in with Google...');
     try {
-      await signInWithPopup(auth, googleProvider);
+      const userCredential = await signInWithPopup(auth, googleProvider);
+      const user = userCredential.user;
+      
+      // Register/login user in backend
+      await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+        }),
+      });
+      
       navigate('/home');
     } catch (err) {
       setStatus(err.message);
@@ -50,7 +93,20 @@ export default function LoginPage() {
   async function handleGithub() {
     setStatus('Signing in with GitHub...');
     try {
-      await signInWithPopup(auth, githubProvider);
+      const userCredential = await signInWithPopup(auth, githubProvider);
+      const user = userCredential.user;
+      
+      // Register/login user in backend
+      await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+        }),
+      });
+      
       navigate('/home');
     } catch (err) {
       setStatus(err.message);
