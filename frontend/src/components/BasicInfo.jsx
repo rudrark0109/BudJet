@@ -1,24 +1,36 @@
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Minus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { fetchSummary } from '../api/transactions';
 
-const monthlyData = [
-  { month: 'Jan', income: 4500, expenses: 3200 },
-  { month: 'Feb', income: 4200, expenses: 3500 },
-  { month: 'Mar', income: 4800, expenses: 3100 },
-  { month: 'Apr', income: 4600, expenses: 3400 },
-  { month: 'May', income: 5000, expenses: 3600 },
-  { month: 'Jun', income: 4700, expenses: 3300 },
-];
+export function BasicInfo({ onOpenCreditModal, onOpenDebitModal, userId, refreshKey }) {
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [summary, setSummary] = useState({ balance: 0, total_income: 0, total_expenses: 0 });
 
-const categoryData = [
-  { category: 'Food', amount: 1200 },
-  { category: 'Transport', amount: 450 },
-  { category: 'Shopping', amount: 800 },
-  { category: 'Bills', amount: 950 },
-  { category: 'Entertainment', amount: 300 },
-];
-
-export function BasicInfo({ onOpenCreditModal, onOpenDebitModal }) {
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const data = await fetchSummary(userId);
+        if (data?.monthlyTrend) {
+          setMonthlyData(data.monthlyTrend.map(m => ({ month: m.month, income: Number(m.income) || 0, expenses: Number(m.expenses) || 0 })));
+        }
+        if (data?.categoryBreakdown) {
+          setCategoryData(data.categoryBreakdown.map(c => ({ category: c.category, amount: Number(c.amount) || 0 })));
+        }
+        if (data?.summary) {
+          setSummary({
+            balance: Number(data.summary.balance) || 0,
+            total_income: Number(data.summary.total_income) || 0,
+            total_expenses: Number(data.summary.total_expenses) || 0,
+          });
+        }
+      } catch (err) {
+        console.warn('Summary fetch failed:', err.message);
+      }
+    })();
+  }, [userId, refreshKey]);
   return (
     <div className="basic-info">
       <div className="basic-info-inner">
@@ -82,15 +94,15 @@ export function BasicInfo({ onOpenCreditModal, onOpenDebitModal }) {
         <div className="summary-grid">
           <div>
             <p className="summary-label">Total Balance</p>
-            <p className="summary-value green">$8,450</p>
+            <p className="summary-value green">${summary.balance.toLocaleString(undefined, { minimumFractionDigits: 0 })}</p>
           </div>
           <div>
             <p className="summary-label">This Month Income</p>
-            <p className="summary-value blue">$4,700</p>
+            <p className="summary-value blue">${summary.total_income.toLocaleString(undefined, { minimumFractionDigits: 0 })}</p>
           </div>
           <div>
             <p className="summary-label">This Month Expenses</p>
-            <p className="summary-value red">$3,300</p>
+            <p className="summary-value red">${summary.total_expenses.toLocaleString(undefined, { minimumFractionDigits: 0 })}</p>
           </div>
         </div>
       </div>

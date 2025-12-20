@@ -5,13 +5,12 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
 } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { registerUser } from './api/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
-  const navigate = useNavigate();
 
   async function handleRegister(e) {
     e.preventDefault();
@@ -21,22 +20,13 @@ export default function LoginPage() {
       const user = userCredential.user;
       
       // Register user in backend database
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || email.split('@')[0],
-        }),
+      await registerUser({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || email.split('@')[0],
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to register in database');
-      }
-      
-      setStatus('Registered and logged in');
-      navigate('/home');
+      setStatus('Registered and logged in! Redirecting...');
     } catch (err) {
       setStatus(err.message);
     }
@@ -46,22 +36,8 @@ export default function LoginPage() {
     e.preventDefault();
     setStatus('Logging in...');
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Verify user exists in backend database
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: user.uid }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('User not found in database');
-      }
-      
-      setStatus('Logged in');
-      navigate('/home');
+      await signInWithEmailAndPassword(auth, email, password);
+      setStatus('Logged in! Redirecting...');
     } catch (err) {
       setStatus(err.message);
     }
@@ -74,17 +50,13 @@ export default function LoginPage() {
       const user = userCredential.user;
       
       // Register/login user in backend
-      await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-        }),
+      await registerUser({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
       });
       
-      navigate('/home');
+      setStatus('Signed in! Redirecting...');
     } catch (err) {
       setStatus(err.message);
     }
@@ -97,17 +69,13 @@ export default function LoginPage() {
       const user = userCredential.user;
       
       // Register/login user in backend
-      await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-        }),
+      await registerUser({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
       });
       
-      navigate('/home');
+      setStatus('Signed in! Redirecting...');
     } catch (err) {
       setStatus(err.message);
     }

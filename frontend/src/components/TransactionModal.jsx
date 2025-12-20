@@ -1,5 +1,7 @@
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createTransaction } from '../api/transactions';
+import { fetchCategories, createCategory } from '../api/categories';
 
 const DEBIT_CATEGORIES = [
   'Public Transport',
@@ -11,12 +13,16 @@ const DEBIT_CATEGORIES = [
   'Uber/Lyft'
 ];
 
-export function TransactionModal({ isOpen, onClose, type }) {
+export function TransactionModal({ isOpen, onClose, type, userId, onTransactionAdded }) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [customCategories, setCustomCategories] = useState([]);
   const [dateTime, setDateTime] = useState('');
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [loadingCats, setLoadingCats] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // Set default datetime when modal opens
   useEffect(() => {
@@ -31,6 +37,22 @@ export function TransactionModal({ isOpen, onClose, type }) {
       
       // Prevent body scroll
       document.body.style.overflow = 'hidden';
+
+      // Fetch categories for the user (expense only)
+      if (type === 'debit' && userId) {
+        setLoadingCats(true);
+        fetchCategories(userId)
+          .then((cats) => {
+            setExpenseCategories(
+              (cats || []).filter((c) => (c.type || '').toLowerCase() === 'expense')
+            );
+          })
+          .catch(() => {
+            // Fallback to defaults if API fails
+            setExpenseCategories([]);
+          })
+          .finally(() => setLoadingCats(false));
+      }
     } else {
       // Re-enable body scroll
       document.body.style.overflow = 'unset';
@@ -57,27 +79,83 @@ export function TransactionModal({ isOpen, onClose, type }) {
     }
   };
 
-  const handleSubmit = () => {
-    // Handle transaction submission here
-    console.log({
-      type,
-      amount,
-      description,
-      category: type === 'debit' ? category : undefined,
-      dateTime
-    });
-    
-    // Reset form
-    setAmount('');
-    setDescription('');
-    setCategory('');
-    setCustomCategories([]);
-    onClose();
+  const handleSubmit = async () => {
+    if (!userId) {
+      setError('Missing user session. Please sign in.');
+      return;
+    }
+
+    setError('');
+    setSubmitting(true);
+    try {
+      const amt = parseFloat(amount);
+      if (Number.isNaN(amt) || amt <= 0) {
+        throw new Error('Please enter a valid amount');
+      }
+
+      const mappedType = type === 'credit' ? 'income' : 'expense';
+
+      // Prepare category_id for expenses (debit)
+      let category_id = null;
+      if (mappedType === 'expense') {
+        const nameTrim = (category || '').trim();
+        if (!nameTrim) {
+          throw new Error('Please select or enter a category');
+        }
+        const match = expenseCategories.find(
+          (c) => (c.name || '').toLowerCase() === nameTrim.toLowerCase()
+        );
+        if (match) {
+          category_id = match.id;
+        } else {
+          // Create category then use its id
+          const created = await createCategory({
+            user_id: userId,
+            name: nameTrim,
+            type: 'expense',
+          });
+          category_id = created?.id || null;
+        }
+      }
+
+      // Format date as YYYY-MM-DD for backend
+      const datePart = (dateTime || '').split('T')[0] || new Date().toISOString().split('T')[0];
+
+      await createTransaction({
+        user_id: userId,
+        category_id,
+        amount: amt,
+        description: description || null,
+        type: mappedType,
+        transaction_date: datePart,
+      });
+
+      // Notify parent to refresh data
+      if (onTransactionAdded) {
+        onTransactionAdded();
+      }
+
+      // Reset form
+      setAmount('');
+      setDescription('');
+      setCategory('');
+      setCustomCategories([]);
+      onClose();
+    } catch (e) {
+      setError(e?.message || 'Failed to add transaction');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
 
-  const allCategories = [...DEBIT_CATEGORIES, ...customCategories];
+  const backendCategoryNames = expenseCategories.map((c) => c.name);
+  const allCategories = [
+    ...backendCategoryNames,
+    ...DEBIT_CATEGORIES,
+    ...customCategories,
+  ];
 
   return (
     <div className="modal-overlay">
@@ -104,6 +182,11 @@ export function TransactionModal({ isOpen, onClose, type }) {
 
         {/* Form */}
         <div className="modal-form">
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
           {/* Amount */}
           <div>
             <label className="form-label">
@@ -149,7 +232,10 @@ export function TransactionModal({ isOpen, onClose, type }) {
               
               {/* Category Pills */}
               <div className="category-pills">
-                {allCategories.map((cat) => (
+                {loadingCats ? (
+                  <span className="form-help-text">Loading categories…</span>
+                ) : (
+                  allCategories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => handleCategoryClick(cat)}
@@ -161,7 +247,8 @@ export function TransactionModal({ isOpen, onClose, type }) {
                   >
                     {cat}
                   </button>
-                ))}
+                  ))
+                )}
               </div>
               <p className="form-help-text">
                 Press Enter to add a new category
@@ -187,16 +274,21 @@ export function TransactionModal({ isOpen, onClose, type }) {
         <div className="modal-footer">
           <button
             onClick={handleSubmit}
-            disabled={!amount || !description || (type === 'debit' && !category)}
+            disabled={
+              submitting ||
+              !amount ||
+              !description ||
+              (type === 'debit' && !category)
+            }
             className={`btn ${
-              !amount || !description || (type === 'debit' && !category)
+              submitting || !amount || !description || (type === 'debit' && !category)
                 ? 'btn-disabled'
                 : type === 'credit'
                 ? 'btn-credit'
                 : 'btn-debit'
             }`}
           >
-            Add Transaction
+            {submitting ? 'Adding…' : 'Add Transaction'}
           </button>
         </div>
       </div>

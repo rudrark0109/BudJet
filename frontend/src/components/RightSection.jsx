@@ -1,31 +1,49 @@
 import { PieChart, TrendingUp, BarChart3 } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
-const categoryBreakdown = [
-  { name: 'Food', value: 1200, color: '#3b82f6' },
-  { name: 'Transport', value: 450, color: '#8b5cf6' },
-  { name: 'Shopping', value: 800, color: '#ec4899' },
-  { name: 'Bills', value: 950, color: '#f59e0b' },
-  { name: 'Entertainment', value: 300, color: '#10b981' },
-];
+import { useEffect, useState } from 'react';
+import { fetchSummary } from '../api/transactions';
+import { fetchBudgets } from '../api/budgets';
 
-const weeklyTrend = [
-  { day: 'Mon', amount: 120 },
-  { day: 'Tue', amount: 180 },
-  { day: 'Wed', amount: 95 },
-  { day: 'Thu', amount: 210 },
-  { day: 'Fri', amount: 150 },
-  { day: 'Sat', amount: 280 },
-  { day: 'Sun', amount: 190 },
-];
+export function RightSection({ userId, refreshKey }) {
+  const [categoryBreakdown, setCategoryBreakdown] = useState([]);
+  const [weeklyTrend, setWeeklyTrend] = useState([]);
+  const [savingsGoals, setSavingsGoals] = useState([]);
 
-const savingsGoals = [
-  { goal: 'Emergency Fund', current: 3500, target: 5000 },
-  { goal: 'Vacation', current: 1200, target: 2000 },
-  { goal: 'New Laptop', current: 800, target: 1500 },
-];
-
-export function RightSection() {
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const data = await fetchSummary(userId);
+        if (data?.categoryBreakdown) {
+          setCategoryBreakdown(
+            data.categoryBreakdown.map(c => ({ name: c.category, value: Number(c.amount) || 0, color: c.color || '#3b82f6' }))
+          );
+        }
+        if (data?.monthlyTrend) {
+          setWeeklyTrend(
+            data.monthlyTrend.map(m => ({
+              day: m.month,
+              amount: Number(m.expenses) || 0,
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn('Summary fetch failed:', err.message);
+      }
+      try {
+        const budgets = await fetchBudgets(userId);
+        setSavingsGoals((budgets || []).map(b => ({
+          goal: b.category_name,
+          current: Number(b.current) || 0,
+          target: Number(b.target) || 0,
+          color: b.color,
+        })));
+      } catch (err) {
+        console.warn('Budgets fetch failed:', err.message);
+      }
+    })();
+  }, [userId, refreshKey]);
   return (
     <div className="right-section">
       <div className="spacing-8">
