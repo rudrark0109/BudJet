@@ -3,6 +3,9 @@ import cors from 'cors';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import transactionRoutes from './routes/transactions.js';
+import categoryRoutes from './routes/categories.js';
+import budgetRoutes from './routes/budgets.js';
 
 dotenv.config();
 
@@ -27,6 +30,9 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

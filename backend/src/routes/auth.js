@@ -19,6 +19,8 @@ const pool = new Pool({
 
 // POST /api/auth/register - Register or update user after Firebase auth
 router.post('/register', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { uid, email, displayName } = req.body;
 
@@ -26,8 +28,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'uid and email are required' });
     }
 
+    await client.query('BEGIN');
+
     // Upsert user: insert if not exists, update if exists
-    const query = `
+    const userQuery = `
       INSERT INTO users (uid, email, display_name)
       VALUES ($1, $2, $3)
       ON CONFLICT (uid) 
@@ -35,15 +39,54 @@ router.post('/register', async (req, res) => {
       RETURNING *;
     `;
 
-    const result = await pool.query(query, [uid, email, displayName || null]);
+    const userResult = await client.query(userQuery, [uid, email, displayName || null]);
+    const user = userResult.rows[0];
+
+    // Check if user is new (created_at is very recent, within last 5 seconds)
+    const isNewUser = new Date() - new Date(user.created_at) < 5000;
+
+    if (isNewUser) {
+      // Create default categories for new user
+      const defaultCategories = [
+        // Expense categories
+        { name: 'Food', type: 'expense', color: '#E8684A' },
+        { name: 'Transport', type: 'expense', color: '#5B8FF9' },
+        { name: 'Shopping', type: 'expense', color: '#6DC8EC' },
+        { name: 'Bills', type: 'expense', color: '#9270CA' },
+        { name: 'Entertainment', type: 'expense', color: '#FFD666' },
+        { name: 'Healthcare', type: 'expense', color: '#FF85C0' },
+        { name: 'Education', type: 'expense', color: '#95DE64' },
+        // Income categories
+        { name: 'Salary', type: 'income', color: '#52C41A' },
+        { name: 'Freelance', type: 'income', color: '#13C2C2' },
+        { name: 'Investment', type: 'income', color: '#2F54EB' },
+        { name: 'Gift', type: 'income', color: '#FA8C16' }
+      ];
+
+      const categoryQuery = `
+        INSERT INTO categories (user_id, name, type, color)
+        VALUES ($1, $2, $3, $4)
+      `;
+
+      for (const cat of defaultCategories) {
+        await client.query(categoryQuery, [uid, cat.name, cat.type, cat.color]);
+      }
+    }
+
+    await client.query('COMMIT');
+
     res.status(201).json({ 
       message: 'User registered successfully', 
-      user: result.rows[0] 
+      user,
+      isNewUser
     });
 
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Register error:', err);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
