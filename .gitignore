@@ -1,0 +1,6 @@
+# Editor/workspace files
+*.code-workspace
+
+# Environment files
+.env
+*.env
