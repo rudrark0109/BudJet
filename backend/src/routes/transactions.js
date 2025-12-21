@@ -128,10 +128,56 @@ router.get('/summary/:userId', async (req, res) => {
     
     const trendResult = await pool.query(trendQuery, [userId]);
     
+    const payCycleQuery = `
+      WITH income_dates AS (
+        SELECT 
+          id,
+          amount as income_amount,
+          created_at as income_date,
+          LAG(created_at) OVER (ORDER BY created_at) as prev_income_date,
+          ROW_NUMBER() OVER (ORDER BY created_at DESC) as rn
+        FROM transactions
+        WHERE user_id = $1 AND type = 'income'
+        ORDER BY created_at DESC
+        LIMIT 6
+      ),
+      cycle_expenses AS (
+        SELECT 
+          id.income_date,
+          id.prev_income_date,
+          id.income_amount,
+          id.rn,
+          COALESCE(SUM(t.amount), 0) as expenses,
+          CASE 
+            WHEN id.prev_income_date IS NULL THEN 'First Cycle'
+            ELSE TO_CHAR(id.prev_income_date, 'Mon DD') || ' - ' || TO_CHAR(id.income_date, 'Mon DD')
+          END as cycle_label
+        FROM income_dates id
+        LEFT JOIN transactions t ON 
+          t.user_id = $1 
+          AND t.type = 'expense'
+          AND t.created_at > COALESCE(id.prev_income_date, id.income_date - INTERVAL '30 days')
+          AND t.created_at <= id.income_date
+        WHERE id.rn <= 5
+        GROUP BY id.income_date, id.income_amount, id.prev_income_date, id.rn
+        ORDER BY id.income_date DESC
+      )
+      SELECT 
+        cycle_label,
+        income_amount,
+        expenses,
+        (income_amount - expenses) as savings
+      FROM cycle_expenses
+      ORDER BY income_date ASC
+    `;
+    
+    const payCycleResult = await pool.query(payCycleQuery, [userId]);
+    
     res.json({
       summary: summaryResult.rows[0],
       categoryBreakdown: categoryResult.rows,
-      monthlyTrend: trendResult.rows
+      monthlyTrend: trendResult.rows,
+      payCycleSavings: payCycleResult.rows
     });
   } catch (err) {
     console.error('Get summary error:', err);

@@ -73,7 +73,6 @@ export function LeftSection({ userId, refreshKey }) {
                       <h3 className="transaction-name">{title}</h3>
                       <div className="transaction-meta">
                         <span className="transaction-category">{transaction.category_name || (isIncome ? 'Income' : 'Expense')}</span>
-                        <span className="transaction-category">•</span>
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-slate-500" />
                           <span className="transaction-category">{when}</span>

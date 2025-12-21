@@ -3,12 +3,11 @@ import { PieChart as RePieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Respo
 
 import { useEffect, useState } from 'react';
 import { fetchSummary } from '../api/transactions';
-import { fetchBudgets } from '../api/budgets';
 
 export function RightSection({ userId, refreshKey }) {
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
   const [weeklyTrend, setWeeklyTrend] = useState([]);
-  const [savingsGoals, setSavingsGoals] = useState([]);
+  const [payCycleSavings, setPayCycleSavings] = useState([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -28,19 +27,18 @@ export function RightSection({ userId, refreshKey }) {
             }))
           );
         }
+        if (data?.payCycleSavings) {
+          setPayCycleSavings(
+            data.payCycleSavings.map(cycle => ({
+              label: cycle.cycle_label,
+              income: Number(cycle.income_amount) || 0,
+              expenses: Number(cycle.expenses) || 0,
+              savings: Number(cycle.savings) || 0,
+            }))
+          );
+        }
       } catch (err) {
         console.warn('Summary fetch failed:', err.message);
-      }
-      try {
-        const budgets = await fetchBudgets(userId);
-        setSavingsGoals((budgets || []).map(b => ({
-          goal: b.category_name,
-          current: Number(b.current) || 0,
-          target: Number(b.target) || 0,
-          color: b.color,
-        })));
-      } catch (err) {
-        console.warn('Budgets fetch failed:', err.message);
       }
     })();
   }, [userId, refreshKey]);
@@ -112,31 +110,47 @@ export function RightSection({ userId, refreshKey }) {
       <div>
         <div className="section-title">
           <BarChart3 />
-          <h3>Savings Goals</h3>
+          <h3>Pay Cycle Savings</h3>
         </div>
         
         <div className="goals-container">
-          {savingsGoals.map((goal) => {
-            const percentage = (goal.current / goal.target) * 100;
-            return (
-              <div key={goal.goal} className="goal-card">
-                <div className="goal-header">
-                  <span className="goal-name">{goal.goal}</span>
-                  <span className="goal-percent">{percentage.toFixed(0)}%</span>
+          {payCycleSavings.length === 0 ? (
+            <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', padding: '16px' }}>
+              Add income transactions to track savings per pay cycle
+            </p>
+          ) : (
+            payCycleSavings.map((cycle) => {
+              const savingsRate = cycle.income > 0 ? (cycle.savings / cycle.income) * 100 : 0;
+              const isPositive = cycle.savings >= 0;
+              return (
+                <div key={cycle.label} className="goal-card">
+                  <div className="goal-header">
+                    <span className="goal-name">{cycle.label}</span>
+                    <span className="goal-percent" style={{ color: isPositive ? '#10b981' : '#ef4444' }}>
+                      {isPositive ? '+' : ''}{savingsRate.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill"
+                      style={{ 
+                        width: `${Math.min(Math.abs(savingsRate), 100)}%`,
+                        backgroundColor: isPositive ? '#10b981' : '#ef4444'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="goal-footer">
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      ${cycle.expenses.toFixed(0)} spent
+                    </span>
+                    <span style={{ color: isPositive ? '#10b981' : '#ef4444', fontWeight: '600' }}>
+                      ${Math.abs(cycle.savings).toFixed(0)} {isPositive ? 'saved' : 'deficit'}
+                    </span>
+                  </div>
                 </div>
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                </div>
-                <div className="goal-footer">
-                  <span>${goal.current}</span>
-                  <span>${goal.target}</span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>
