@@ -86,7 +86,7 @@ router.get('/summary/:userId', async (req, res) => {
       SELECT 
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
         SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expenses,
-        SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END) as balance
+        SUM(CASE WHEN type = 'income' THEN amount WHEN type = 'expense' THEN -amount ELSE 0 END) as balance
       FROM transactions
       WHERE user_id = $1 
         AND EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
@@ -129,46 +129,60 @@ router.get('/summary/:userId', async (req, res) => {
     const trendResult = await pool.query(trendQuery, [userId]);
     
     const payCycleQuery = `
-      WITH income_dates AS (
+      WITH pay_cycles AS (
         SELECT 
-          id,
-          amount as income_amount,
-          created_at as income_date,
-          LAG(created_at) OVER (ORDER BY created_at) as prev_income_date,
-          ROW_NUMBER() OVER (ORDER BY created_at DESC) as rn
-        FROM transactions
-        WHERE user_id = $1 AND type = 'income'
-        ORDER BY created_at DESC
-        LIMIT 6
+          year_month,
+          cycle_num,
+          start_date,
+          end_date,
+          TO_CHAR(start_date, 'Mon DD') || ' - ' || TO_CHAR(end_date, 'Mon DD') as cycle_label
+        FROM (
+          SELECT 
+            TO_CHAR(d, 'YYYY-MM') as year_month,
+            1 as cycle_num,
+            DATE_TRUNC('month', d)::date as start_date,
+            (DATE_TRUNC('month', d) + INTERVAL '14 days')::date as end_date
+          FROM generate_series(
+            (SELECT COALESCE(MIN(created_at), CURRENT_DATE) FROM transactions WHERE user_id = $1),
+            CURRENT_DATE,
+            '1 month'::interval
+          ) d
+          UNION ALL
+          SELECT 
+            TO_CHAR(d, 'YYYY-MM') as year_month,
+            2 as cycle_num,
+            (DATE_TRUNC('month', d) + INTERVAL '15 days')::date as start_date,
+            (DATE_TRUNC('month', d) + INTERVAL '1 month' - INTERVAL '1 day')::date as end_date
+          FROM generate_series(
+            (SELECT COALESCE(MIN(created_at), CURRENT_DATE) FROM transactions WHERE user_id = $1),
+            CURRENT_DATE,
+            '1 month'::interval
+          ) d
+        ) cycles
+        WHERE end_date <= CURRENT_DATE
+        ORDER BY start_date DESC
+        LIMIT 4
       ),
-      cycle_expenses AS (
+      cycle_totals AS (
         SELECT 
-          id.income_date,
-          id.prev_income_date,
-          id.income_amount,
-          id.rn,
-          COALESCE(SUM(t.amount), 0) as expenses,
-          CASE 
-            WHEN id.prev_income_date IS NULL THEN 'First Cycle'
-            ELSE TO_CHAR(id.prev_income_date, 'Mon DD') || ' - ' || TO_CHAR(id.income_date, 'Mon DD')
-          END as cycle_label
-        FROM income_dates id
+          pc.cycle_label,
+          pc.start_date,
+          COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as income_amount,
+          COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as expenses
+        FROM pay_cycles pc
         LEFT JOIN transactions t ON 
-          t.user_id = $1 
-          AND t.type = 'expense'
-          AND t.created_at > COALESCE(id.prev_income_date, id.income_date - INTERVAL '30 days')
-          AND t.created_at <= id.income_date
-        WHERE id.rn <= 5
-        GROUP BY id.income_date, id.income_amount, id.prev_income_date, id.rn
-        ORDER BY id.income_date DESC
+          t.user_id = $1
+          AND t.created_at::date >= pc.start_date
+          AND t.created_at::date <= pc.end_date
+        GROUP BY pc.cycle_label, pc.start_date
       )
       SELECT 
         cycle_label,
         income_amount,
         expenses,
         (income_amount - expenses) as savings
-      FROM cycle_expenses
-      ORDER BY income_date ASC
+      FROM cycle_totals
+      ORDER BY start_date ASC
     `;
     
     const payCycleResult = await pool.query(payCycleQuery, [userId]);
