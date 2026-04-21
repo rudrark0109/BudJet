@@ -33,6 +33,7 @@ Default categories seed on first user registration via /api/auth/register.
 ## Docs
 - Developer guide: docs/developer-guide.md
 - Deployment guide: docs/deployment-guide.md
+- Architecture workflow plan: docs/workflow-implementation-plan.md
 
 ## Health Checks
 - Backend: /health (app) and /api/test-db (DB)

@@ -23,7 +23,12 @@ PG_DATABASE=budjet
 PG_USER=postgres
 PG_PASSWORD=yourpassword
 PG_SSL=false
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CLIENT_EMAIL=your-service-account-email
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
+
+Note: You can alternatively use Application Default Credentials (for example `GOOGLE_APPLICATION_CREDENTIALS`) instead of setting the Firebase service account fields above.
 
 Create frontend/.env.local (Vite loads VITE_*):
 ```

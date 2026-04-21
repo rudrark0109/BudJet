@@ -1,6 +1,11 @@
 import express from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import {
+  requireBodyUidMatch,
+  requireParamUidMatch,
+  verifyFirebaseToken,
+} from '../middleware/firebaseAuth.js';
 
 dotenv.config();
 
@@ -18,7 +23,7 @@ const pool = new Pool({
 });
 
 // POST /api/auth/register - Register or update user after Firebase auth
-router.post('/register', async (req, res) => {
+router.post('/register', verifyFirebaseToken, requireBodyUidMatch('uid'), async (req, res) => {
   const client = await pool.connect();
   
   try {
@@ -91,7 +96,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login - Verify user exists after Firebase login
-router.post('/login', async (req, res) => {
+router.post('/login', verifyFirebaseToken, requireBodyUidMatch('uid'), async (req, res) => {
   try {
     const { uid } = req.body;
 
@@ -118,7 +123,7 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/user/:uid - Get user profile
-router.get('/user/:uid', async (req, res) => {
+router.get('/user/:uid', verifyFirebaseToken, requireParamUidMatch('uid'), async (req, res) => {
   try {
     const { uid } = req.params;
     const query = 'SELECT uid, email, display_name, created_at FROM users WHERE uid = $1';

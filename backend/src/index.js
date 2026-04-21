@@ -6,11 +6,21 @@ import authRoutes from './routes/auth.js';
 import transactionRoutes from './routes/transactions.js';
 import categoryRoutes from './routes/categories.js';
 import budgetRoutes from './routes/budgets.js';
+import jobRoutes from './routes/jobs.js';
+import shiftRoutes from './routes/shifts.js';
+import { initializeFirebaseAdmin, verifyFirebaseToken } from './middleware/firebaseAuth.js';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+try {
+  initializeFirebaseAdmin();
+  console.log('Firebase Admin initialized');
+} catch (err) {
+  console.error('Firebase Admin initialization failed:', err.message);
+}
 
 // Database pool
 const useSSL = (process.env.PG_SSL || '').toLowerCase() === 'true';
@@ -30,9 +40,11 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/budgets', budgetRoutes);
+app.use('/api/transactions', verifyFirebaseToken, transactionRoutes);
+app.use('/api/categories', verifyFirebaseToken, categoryRoutes);
+app.use('/api/budgets', verifyFirebaseToken, budgetRoutes);
+app.use('/api/jobs', verifyFirebaseToken, jobRoutes);
+app.use('/api/shifts', verifyFirebaseToken, shiftRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

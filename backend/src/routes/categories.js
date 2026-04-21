@@ -1,6 +1,7 @@
 import express from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { requireBodyUidMatch, requireParamUidMatch } from '../middleware/firebaseAuth.js';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const pool = new Pool({
 });
 
 // GET /api/categories/:userId - Get all categories for a user
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', requireParamUidMatch('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     const query = `
@@ -36,7 +37,7 @@ router.get('/:userId', async (req, res) => {
 });
 
 // POST /api/categories - Create a new category
-router.post('/', async (req, res) => {
+router.post('/', requireBodyUidMatch('user_id'), async (req, res) => {
   try {
     const { user_id, name, type, color } = req.body;
 

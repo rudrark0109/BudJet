@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
+import ShiftsPage from './ShiftsPage';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -53,6 +54,10 @@ export default function App() {
       <Route 
         path="/home" 
         element={user ? <HomePage user={user} /> : <Navigate to="/" replace />} 
+      />
+      <Route
+        path="/shifts"
+        element={user ? <ShiftsPage /> : <Navigate to="/" replace />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -41,6 +41,35 @@ export function Navbar() {
           <div className="navbar-logo-icon"></div>
           <span className="navbar-logo-text">BudJet</span>
         </div>
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => navigate('/home')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid #475569',
+              background: 'transparent',
+              color: '#e2e8f0',
+              cursor: 'pointer',
+            }}
+          >
+            Home
+          </button>
+          <button
+            onClick={() => navigate('/shifts')}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid #475569',
+              background: 'transparent',
+              color: '#e2e8f0',
+              cursor: 'pointer',
+            }}
+          >
+            Shifts
+          </button>
+        </div>
         
         <div className="navbar-user" style={{ position: 'relative' }}>
           <p className="navbar-user-name">{username}</p>

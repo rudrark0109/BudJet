@@ -41,9 +41,35 @@ CREATE TABLE IF NOT EXISTS budgets (
   UNIQUE(user_id, category_id, month)
 );
 
+-- Jobs table (hourly work profiles per user)
+CREATE TABLE IF NOT EXISTS jobs (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(128) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+  name VARCHAR(150) NOT NULL,
+  hourly_rate DECIMAL(10, 2) NOT NULL CHECK (hourly_rate >= 0),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Shifts table (clock in/out entries per job)
+CREATE TABLE IF NOT EXISTS shifts (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(128) NOT NULL REFERENCES users(uid) ON DELETE CASCADE,
+  job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  shift_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  clock_in TIME NOT NULL,
+  clock_out TIME,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(created_at);
 CREATE INDEX IF NOT EXISTS idx_budgets_user_id ON budgets(user_id);
 CREATE INDEX IF NOT EXISTS idx_budgets_month ON budgets(month);
+CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_shifts_user_id ON shifts(user_id);
+CREATE INDEX IF NOT EXISTS idx_shifts_user_date ON shifts(user_id, shift_date);
+CREATE INDEX IF NOT EXISTS idx_shifts_job_id ON shifts(job_id);

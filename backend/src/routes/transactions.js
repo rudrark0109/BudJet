@@ -1,6 +1,7 @@
 import express from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { requireBodyUidMatch, requireParamUidMatch } from '../middleware/firebaseAuth.js';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const pool = new Pool({
 });
 
 // GET /api/transactions/:userId - Get all transactions for a user
-router.get('/:userId', async (req, res) => {
+router.get('/:userId', requireParamUidMatch('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     const query = `
@@ -46,7 +47,7 @@ router.get('/:userId', async (req, res) => {
 });
 
 // POST /api/transactions - Create a new transaction
-router.post('/', async (req, res) => {
+router.post('/', requireBodyUidMatch('user_id'), async (req, res) => {
   try {
     const { user_id, category_id, amount, description, type, transaction_date } = req.body;
 
@@ -77,7 +78,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/transactions/summary/:userId - Get financial summary
-router.get('/summary/:userId', async (req, res) => {
+router.get('/summary/:userId', requireParamUidMatch('userId'), async (req, res) => {
   try {
     const { userId } = req.params;
     

@@ -25,6 +25,11 @@ Backend (.env on server):
 | PG_USER | yes | Database user |
 | PG_PASSWORD | yes | Database password |
 | PG_SSL | no | true/false; true for managed SSL (rejectUnauthorized=false) |
+| FIREBASE_PROJECT_ID | yes* | Firebase project id used by firebase-admin |
+| FIREBASE_CLIENT_EMAIL | yes* | Service account client email for firebase-admin |
+| FIREBASE_PRIVATE_KEY | yes* | Service account private key (newline escaped) |
+
+`*` Not required when runtime uses Application Default Credentials (for example `GOOGLE_APPLICATION_CREDENTIALS`).
 
 Frontend (.env.production or host-specific secrets):
 | Name | Required | Description |
