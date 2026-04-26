@@ -29,6 +29,10 @@ export function updateShift(shiftId, payload) {
   return api.patch(`/api/shifts/${encodeURIComponent(shiftId)}`, payload);
 }
 
+export function deleteShift(shiftId, userId) {
+  return api.delete(`/api/shifts/${encodeURIComponent(shiftId)}`, { user_id: userId });
+}
+
 export function fetchPayCycleEstimate(userId, year, month) {
   const query = new URLSearchParams();
   if (year) {

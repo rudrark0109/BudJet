@@ -288,4 +288,22 @@ router.get('/pay-cycle/:userId', requireParamUidMatch('userId'), async (req, res
   }
 });
 
+router.delete('/:shiftId', requireBodyUidMatch('user_id'), async (req, res) => {
+  try {
+    const { shiftId } = req.params;
+    const { user_id } = req.body;
+
+    const existing = await pool.query('SELECT id FROM shifts WHERE id = $1 AND user_id = $2', [shiftId, user_id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Shift not found' });
+    }
+
+    await pool.query('DELETE FROM shifts WHERE id = $1 AND user_id = $2', [shiftId, user_id]);
+    res.status(204).end();
+  } catch (err) {
+    console.error('Delete shift error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

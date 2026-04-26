@@ -6,6 +6,7 @@ import {
   clockInShift,
   clockOutShift,
   createJob,
+  deleteShift,
   fetchJobs,
   fetchPayCycleEstimate,
   fetchShifts,
@@ -165,6 +166,17 @@ export default function ShiftsPage() {
     try {
       await updateJob(job.id, { user_id: userId, hourly_rate: rate });
       setStatus('Hourly pay updated.');
+      await loadData();
+    } catch (err) {
+      setStatus(err.message);
+    }
+  }
+
+  async function handleDeleteShift(shiftId) {
+    if (!confirm('Delete this shift? This cannot be undone.')) return;
+    try {
+      await deleteShift(shiftId, userId);
+      setStatus('Shift deleted.');
       await loadData();
     } catch (err) {
       setStatus(err.message);
@@ -362,7 +374,7 @@ export default function ShiftsPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', color: '#e2e8f0' }}>
                     <thead>
                       <tr>
-                        {['Date', 'Job', 'In', 'Out', 'Hours', 'Expected'].map((h, i) => (
+                        {['Date', 'Job', 'In', 'Out', 'Hours', 'Expected', ''].map((h, i) => (
                           <th key={h} style={{ textAlign: i >= 4 ? 'right' : 'left', borderBottom: '1px solid #334155', padding: '8px' }}>{h}</th>
                         ))}
                       </tr>
@@ -376,6 +388,14 @@ export default function ShiftsPage() {
                           <td style={{ borderBottom: '1px solid #1f2937', padding: '8px' }}>{s.clock_out || '-'}</td>
                           <td style={{ borderBottom: '1px solid #1f2937', padding: '8px', textAlign: 'right' }}>{Number(s.hours_worked || 0).toFixed(2)}</td>
                           <td style={{ borderBottom: '1px solid #1f2937', padding: '8px', textAlign: 'right' }}>${Number(s.expected_earnings || 0).toFixed(2)}</td>
+                          <td style={{ borderBottom: '1px solid #1f2937', padding: '8px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleDeleteShift(s.id)}
+                              style={{ background: 'transparent', border: '1px solid #7f1d1d', color: '#f87171', borderRadius: '6px', padding: '3px 10px', cursor: 'pointer', fontSize: '12px' }}
+                            >
+                              Delete
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
