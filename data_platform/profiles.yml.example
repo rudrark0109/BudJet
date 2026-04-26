@@ -1,0 +1,20 @@
+# Copy this file to profiles.yml and fill in your values.
+# profiles.yml is gitignored — never commit credentials.
+
+budjet:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Path relative to where you run `dbt` (i.e. from data_platform/)
+      path: "budjet.duckdb"
+      threads: 4
+
+    cloud-demo:
+      type: bigquery
+      method: oauth
+      project: your-gcp-project-id
+      dataset: budjet_gold
+      threads: 4
+      timeout_seconds: 300
+      location: US

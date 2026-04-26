@@ -1,0 +1,29 @@
+name: budjet
+version: '1.0.0'
+config-version: 2
+
+profile: budjet
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+analysis-paths: ["analyses"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  budjet:
+    silver:
+      staging:
+        +materialized: view
+        +schema: silver
+      intermediate:
+        +materialized: view
+        +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold

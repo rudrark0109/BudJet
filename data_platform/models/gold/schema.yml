@@ -1,0 +1,145 @@
+version: 2
+
+models:
+  - name: dim_categories
+    description: "Category lookup table. One row per category per user."
+    columns:
+      - name: category_id
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        tests:
+          - not_null
+      - name: category_name
+        tests:
+          - not_null
+      - name: category_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['income', 'expense']
+      - name: color
+        tests:
+          - not_null
+
+  - name: fct_transactions
+    description: "Base fact table. One row per transaction with category attributes denormalized."
+    columns:
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        tests:
+          - not_null
+      - name: amount
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: transaction_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['income', 'expense']
+      - name: transaction_date
+        tests:
+          - not_null
+      - name: month
+        tests:
+          - not_null
+
+  - name: mart_monthly_spend
+    description: "Expense totals per user × category × month. Grain is enforced by the unique test."
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: category_id
+        tests:
+          - not_null
+      - name: month
+        tests:
+          - not_null
+      - name: total_amount
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: transaction_count
+        tests:
+          - not_null
+
+  - name: mart_budget_vs_actual
+    description: "Actual spend vs budget for each user × category × month. budget_amount is NULL when no budget is set."
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: actual_spend
+        tests:
+          - not_null
+      - name: budget_status
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ok', 'warning', 'over', 'no_budget']
+
+  - name: mart_cashflow
+    description: "Net cashflow per user × month. total_income - total_expenses = net_cashflow."
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: month
+        tests:
+          - not_null
+      - name: total_income
+        tests:
+          - not_null
+      - name: total_expenses
+        tests:
+          - not_null
+      - name: net_cashflow
+        tests:
+          - not_null
+
+  - name: mart_earnings_summary
+    description: "Hourly job earnings per user × job × month."
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: job_id
+        tests:
+          - not_null
+      - name: month
+        tests:
+          - not_null
+      - name: total_hours
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+      - name: total_gross_pay
+        tests:
+          - not_null
+
+  - name: mart_pay_cycle
+    description: "Semi-monthly pay cycle breakdown per user × job × month × cycle. Matches the ShiftsPage UI buckets."
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: cycle_number
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3]
+      - name: estimated_pay
+        tests:
+          - not_null

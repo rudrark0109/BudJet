@@ -1,0 +1,84 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: main
+    description: "Raw data extracted from Postgres by Dagster. Immutable — never modified after landing."
+    freshness:
+      warn_after: { count: 2, period: hour }
+      error_after: { count: 12, period: hour }
+
+    tables:
+      - name: raw_transactions
+        loaded_at_field: _extracted_at
+        description: "All transactions from Postgres, as extracted."
+        columns:
+          - name: id
+            description: "Postgres serial PK"
+          - name: user_id
+            description: "Firebase UID"
+          - name: category_id
+          - name: amount
+          - name: description
+          - name: type
+            description: "'income' or 'expense'"
+          - name: transaction_date
+          - name: created_at
+          - name: _extracted_at
+            description: "UTC timestamp when Dagster wrote this row"
+
+      - name: raw_categories
+        loaded_at_field: _extracted_at
+        description: "User-defined income/expense categories."
+        columns:
+          - name: id
+          - name: user_id
+          - name: name
+          - name: type
+            description: "'income' or 'expense'"
+          - name: color
+            description: "Hex color string e.g. #FF5733"
+          - name: created_at
+          - name: _extracted_at
+
+      - name: raw_budgets
+        loaded_at_field: _extracted_at
+        description: "Monthly budget limits per category per user."
+        columns:
+          - name: id
+          - name: user_id
+          - name: category_id
+          - name: amount
+          - name: month
+            description: "Format: YYYY-MM (e.g. 2024-01)"
+          - name: created_at
+          - name: _extracted_at
+
+      - name: raw_jobs
+        loaded_at_field: _extracted_at
+        description: "Hourly job profiles per user."
+        columns:
+          - name: id
+          - name: user_id
+          - name: name
+            description: "Job/employer name"
+          - name: hourly_rate
+          - name: is_active
+          - name: created_at
+          - name: _extracted_at
+
+      - name: raw_shifts
+        loaded_at_field: _extracted_at
+        description: "Clock-in/out shift records linked to a job."
+        columns:
+          - name: id
+          - name: user_id
+          - name: job_id
+          - name: shift_date
+          - name: clock_in
+            description: "TIME — local time of clock-in"
+          - name: clock_out
+            description: "TIME — local time of clock-out; NULL if shift is still open"
+          - name: created_at
+          - name: updated_at
+          - name: _extracted_at

@@ -1,0 +1,22 @@
+# Core orchestration
+dagster>=1.6.0,<2.0.0
+dagster-webserver>=1.6.0,<2.0.0
+dagster-dbt>=0.22.0,<1.0.0
+
+# dbt
+dbt-core>=1.7.0,<2.0.0
+dbt-duckdb>=1.7.0,<2.0.0
+
+# Analytics warehouse
+duckdb>=0.10.0
+
+# Data processing
+pandas>=2.0.0
+pyarrow>=18.0.0
+
+# Postgres connection
+psycopg2-binary>=2.9.0,<3.0.0
+
+# Utilities
+python-dotenv>=1.0.0,<2.0.0
+setuptools>=70.0.0

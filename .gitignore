@@ -42,3 +42,24 @@ dist-ssr
 # Firebase service account key (never commit this)
 serviceAccountKey.json
 *serviceAccountKey*.json
+
+# Data platform — generated artifacts (never commit)
+data_platform/budjet.duckdb
+data_platform/budjet.duckdb.wal
+data_platform/storage/
+data_platform/target/
+data_platform/dbt_packages/
+data_platform/logs/
+data_platform/profiles.yml
+data_platform/pipeline/__pycache__/
+data_platform/pipeline/**/__pycache__/
+**/__pycache__/
+**/*.pyc
+*.pyc
+.venv/
+data_platform/.venv/
+data_platform/.dagster/
+data_platform/.tmp_dagster_home*/
+data_platform/.user.yml
+data_platform/budjet_pipeline.egg-info/
+data_platform/package-lock.yml
